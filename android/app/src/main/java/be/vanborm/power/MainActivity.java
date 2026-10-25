@@ -85,6 +85,16 @@ public class MainActivity extends Activity {
 
   @Override protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); web.saveState(out); }
 
+  private boolean immersive = false;
+  private void applyImmersive() {
+    View d = getWindow().getDecorView();
+    int f = d.getSystemUiVisibility();
+    int hide = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+             | View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
+    d.setSystemUiVisibility(immersive ? (f | hide) : (f & ~hide));
+  }
+  @Override public void onWindowFocusChanged(boolean has) { super.onWindowFocusChanged(has); if (has && immersive) applyImmersive(); }
+
   @Override public void onBackPressed() {
     web.evaluateJavascript("(window.powerBack&&window.powerBack())?'1':'0'", v -> { if (!"\"1\"".equals(v)) MainActivity.super.onBackPressed(); });
   }
@@ -120,6 +130,10 @@ public class MainActivity extends Activity {
       i.putExtra(Intent.EXTRA_TEXT, text);
       startActivity(Intent.createChooser(i, title));
     }
+
+    /** Schermvullend: verbergt status- en navigatiebalk (immersive sticky); vegen vanaf de rand toont ze tijdelijk. */
+    @JavascriptInterface public void setFullscreen(boolean on) { runOnUiThread(() -> { immersive = on; applyImmersive(); }); }
+    @JavascriptInterface public boolean isFullscreen() { return immersive; }
 
     @JavascriptInterface public void keepAwake(boolean on) {
       runOnUiThread(() -> { if (on) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); });

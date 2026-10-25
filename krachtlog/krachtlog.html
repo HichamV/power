@@ -1106,9 +1106,10 @@ function updateBanner(){const u=S.updAvail;if(!u||!ANDROID())return '';const a=A
 /* ========= fullscreen ========= */
 const I_FS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>';
 const I_FSX='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h5V3M21 8h-5V3M3 16h5v5M21 16h-5v5"/></svg>';
-const isFs=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+const isFs=()=>{const a=ANDROID();if(a&&a.isFullscreen){try{return !!a.isFullscreen()}catch(e){}}return !!(document.fullscreenElement||document.webkitFullscreenElement)};
 function fsBtn(){return `<button class="x" data-act="fullscreen" aria-label="Volledig scherm" title="Volledig scherm" style="width:34px;height:34px">${isFs()?I_FSX:I_FS}</button>`}
 function toggleFs(){
+  const an=ANDROID();if(an&&an.setFullscreen){const on=!isFs();try{an.setFullscreen(on)}catch(e){}S.settings.fullscreen=on;save();$$('[data-act="fullscreen"]').forEach(b=>b.innerHTML=on?I_FSX:I_FS);toast(on?'Schermvullend. Veeg vanaf de rand om de balken even te tonen.':'Balken weer zichtbaar');return}
   if(isFs()){(document.exitFullscreen||document.webkitExitFullscreen).call(document);return}
   const el=document.documentElement;const req=el.requestFullscreen||el.webkitRequestFullscreen;
   const fail=()=>sheet('Volledig scherm',`<p class="note" style="font-size:15px;color:var(--fg)">De browser staat volledig scherm hier niet toe (de app draait binnen de claude.ai-pagina).</p><p class="note">Zonder balken werkt wel: open deze link in Chrome, tik op ⋮ → <b>Toevoegen aan startscherm</b>. Start je Power daarna via dat icoon, dan opent ze schermvullend, zonder adresbalk en zonder de claude.ai-balk.</p><button class="btn p block" data-close>Begrepen</button>`);
@@ -1194,6 +1195,6 @@ window.addEventListener('resize',()=>{});
 /* ========= boot ========= */
 if(S.timerEnd&&S.timerEnd>Date.now())drawTimer();else S.timerEnd=null;
 render();
-try{setTimeout(()=>checkUpdate(false),1500)}catch(e){}
+try{setTimeout(()=>checkUpdate(false),1500);try{const an=ANDROID();if(an&&an.setFullscreen&&S.settings.fullscreen)an.setFullscreen(true)}catch(e){}}catch(e){}
 try{if('serviceWorker' in navigator&&/^https?:/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
 </script>
