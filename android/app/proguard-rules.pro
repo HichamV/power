@@ -1,0 +1,3 @@
+-keepclassmembers class be.vanborm.power.MainActivity$Bridge { public *; }
+-keepattributes JavascriptInterface
+-keep class be.vanborm.power.ApkProvider { *; }

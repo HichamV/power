@@ -1,0 +1,28 @@
+name: Power APK
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: android-actions/setup-android@v3
+      - name: Signing key from secrets
+        run: |
+          echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > android/power.keystore
+          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=power\n' "${{ secrets.KEYSTORE_PASSWORD }}" "${{ secrets.KEYSTORE_PASSWORD }}" > android/keystore.properties
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew build-apk.sh
+          ./build-apk.sh ci
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: android/Power.apk
+          generate_release_notes: true

@@ -1,0 +1,11 @@
+plugins { id 'com.android.application' }
+def vp = new Properties(); file("../version.properties").withInputStream { vp.load(it) }
+def kp = new Properties(); def kf = file("../keystore.properties"); if (kf.exists()) kf.withInputStream { kp.load(it) }
+android {
+  namespace 'be.vanborm.power'
+  compileSdk 34
+  defaultConfig { applicationId "be.vanborm.power"; minSdk 24; targetSdk 34; versionCode vp.versionCode.toInteger(); versionName vp.versionName }
+  signingConfigs { release { storeFile file("../power.keystore"); storePassword kp.storePassword; keyAlias kp.keyAlias; keyPassword kp.keyPassword } }
+  buildTypes { release { minifyEnabled true; shrinkResources true; proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'; signingConfig signingConfigs.release } }
+  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
