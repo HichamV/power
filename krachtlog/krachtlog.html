@@ -1015,7 +1015,7 @@ function vMore(){const s=S.settings;
       <div class="grid2"><button class="btn p" data-act="exportHist">Geschiedenis exporteren</button><button class="btn" data-act="importHist">Importeren</button></div>
       <div class="grid2" style="margin-top:8px"><button class="btn" data-act="exportCopy">Back-up (alles)</button><button class="btn ghost" data-act="importSheet">Back-up terugzetten</button></div></div>
     ${ANDROID()?`<div class="card"><h3>Updates</h3><p class="note" style="margin:8px 0">De app kijkt bij het openen naar de nieuwste release op GitHub. Staat Obtainium op je toestel, dan loopt de update daarlangs; anders downloadt en installeert Power ze zelf (één bevestiging).</p>
-      <label class="f"><span>GitHub-repository (eigenaar/naam)</span><input id="stRepo" value="${esc(s.updRepo||'')}" placeholder="bv. hichamv/power"></label>
+      <label class="f"><span>GitHub-repository (eigenaar/naam)</span><input id="stRepo" value="${esc(s.updRepo||'')}" placeholder="standaard HichamV/power"></label>
       <label class="f"><span>Token (enkel nodig bij een privérepository)</span><input id="stTok" type="password" value="${esc(s.updToken||'')}" placeholder="github_pat_…"></label>
       <button class="btn block" data-act="checkUpdate">Nu controleren</button></div>`:''}
     <div class="card"><h3>Installeren als app</h3><button class="btn block" data-act="fullscreen" style="margin-top:8px">${I_FS} Volledig scherm</button><p class="note" style="margin-top:8px">Android (Chrome): open het menu ⋮ rechtsboven en kies <b>App installeren</b> of <b>Toevoegen aan startscherm</b>. De app opent dan schermvullend met een eigen icoon.<br>iPhone (Safari): deel-knop → <b>Zet op beginscherm</b>.</p></div>
@@ -1100,7 +1100,7 @@ function nativeButtons(txt,name,mime){const a=ANDROID();if(!a)return '';return `
 function bindNative(b,txt){const a=ANDROID();if(!a)return;$$('[data-native]',b).forEach(x=>x.onclick=()=>{if(x.dataset.native==='save')a.saveFile(x.dataset.name,txt,x.dataset.mime||'text/plain');else a.share(x.dataset.name,txt)})}
 /* ========= updates (Android) ========= */
 const cmpVer=(a,b)=>{const A=String(a).replace(/^v/,'').split('.').map(Number),B=String(b).replace(/^v/,'').split('.').map(Number);for(let i=0;i<Math.max(A.length,B.length);i++){const d=(A[i]||0)-(B[i]||0);if(d)return d}return 0};
-function checkUpdate(manual){const a=ANDROID();if(!a||!a.checkUpdate)return;const repo=S.settings.updRepo||'';if(!repo){if(manual)toast('Vul eerst de GitHub-repository in');return}S.updManual=!!manual;try{a.checkUpdate(repo,S.settings.updToken||'')}catch(e){}}
+function checkUpdate(manual){const a=ANDROID();if(!a||!a.checkUpdate)return;const repo=S.settings.updRepo||'HichamV/power';S.updManual=!!manual;try{a.checkUpdate(repo,S.settings.updToken||'')}catch(e){}}
 window.onUpdateInfo=info=>{const a=ANDROID();if(!info){if(S.updManual)toast('Updatecheck mislukt (adres, token of geen verbinding)');S.updManual=false;return}const cur=a?a.version():'0';if(cmpVer(info.version,cur)>0){S.updAvail=info;if(S.tab==='home')render();else toast(`Versie ${info.version} beschikbaar: zie Home`)}else{S.updAvail=null;if(S.updManual)toast(`Je hebt de nieuwste versie (${cur})`)}S.updManual=false};
 function updateBanner(){const u=S.updAvail;if(!u||!ANDROID())return '';const a=ANDROID();const obt=a.hasObtainium&&a.hasObtainium();return `<div class="card" style="border-color:var(--accent)"><b>Versie ${esc(u.version)} beschikbaar</b> <span class="small muted">(nu ${esc(a.version())})</span>${u.notes?`<p class="note" style="margin-top:4px">${esc(u.notes).slice(0,300)}</p>`:''}<div class="grid2" style="margin-top:8px"><button class="btn p" data-act="installUpdate">${obt?'Bijwerken via Obtainium':'Installeren'}</button><button class="btn ghost" data-act="dismissUpdate">Later</button></div></div>`}
 /* ========= fullscreen ========= */
@@ -1173,7 +1173,7 @@ document.addEventListener('click',e=>{
     case 'delBW':S.bodyweight=S.bodyweight.filter(x=>x.date!==d.d);save();render();break;
     case 'exportCopy':exportCopy();break;
     case 'fullscreen':toggleFs();break;
-    case 'installUpdate':{const a=ANDROID(),u=S.updAvail;if(!a||!u)break;if(a.hasObtainium&&a.hasObtainium())a.openObtainium(S.settings.updRepo||'');else{toast('Downloaden… daarna vraagt Android om te installeren');a.installUpdate(u.url||'',S.settings.updToken||'')}break}
+    case 'installUpdate':{const a=ANDROID(),u=S.updAvail;if(!a||!u)break;if(a.hasObtainium&&a.hasObtainium())a.openObtainium(S.settings.updRepo||'HichamV/power');else{toast('Downloaden… daarna vraagt Android om te installeren');a.installUpdate(u.url||'',S.settings.updToken||'')}break}
     case 'dismissUpdate':S.updAvail=null;render();break;
     case 'checkUpdate':checkUpdate(true);break;
     case 'exportMd':copyText(exportMd(),'Logboek (tekst)');break;
