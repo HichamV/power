@@ -318,11 +318,12 @@ let I18N_LANG='nl',I18N_MAP={},I18N_PAT=[];
 function setLang(l){I18N_LANG=LANGS[l]?l:'nl';MON=MONS[I18N_LANG];DAG=DAGS[I18N_LANG];document.documentElement.lang=I18N_LANG;I18N_MAP={};I18N_PAT=[];
   const dict=I18N[I18N_LANG]||{};const esc=x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   for(const k in dict){if(/[#@%]/.test(k)){const re=new RegExp('^'+esc(k).replace(/#/g,'(\\d+(?:[.,]\\d+)?)').replace(/@/g,'([A-Za-zéûô]{2,4}\\.? \\d{1,2} [A-Za-zéûô]{3,5}\\.?(?: \\d{4})?)').replace(/%/g,'(.+?)')+'$');I18N_PAT.push([re,dict[k]])}else I18N_MAP[k]=dict[k]}}
-function tr(t){if(I18N_LANG==='nl')return t;const s=t.trim();if(!s)return t;const lead=t.slice(0,t.length-t.trimStart().length),trail=t.slice(t.trimEnd().length);
+function tr(t,noSplit){if(I18N_LANG==='nl')return t;const s=t.trim();if(!s)return t;const lead=t.slice(0,t.length-t.trimStart().length),trail=t.slice(t.trimEnd().length);
   const d=I18N_MAP[s];if(d!=null)return lead+d+trail;
   for(const [re,v] of I18N_PAT){const m=s.match(re);if(m){let i=1;return lead+v.replace(/[#@%]/g,c=>{const g=m[i++]??'';return c==='%'?tr(g):g})+trail}}
+  if(!noSplit){const parts=s.split(/(?<=[.!?])\s+(?=[A-Z0-9„“(])/);if(parts.length>1){let hit=false;const out=parts.map(x=>{const y=tr(x,true);if(y!==x)hit=true;return y});if(hit)return lead+out.join(' ')+trail}}
   return t}
-function translateDOM(root){if(I18N_LANG==='nl'||!root)return;const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT,{acceptNode:n=>{if(n.nodeType===1){const tg=n.tagName;return (tg==='SCRIPT'||tg==='STYLE'||tg==='INPUT'||tg==='TEXTAREA')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT}return NodeFilter.FILTER_ACCEPT}});
+function translateDOM(root){if(I18N_LANG==='nl'||!root)return;const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT,{acceptNode:n=>{if(n.nodeType===1){const tg=n.tagName;return (tg==='SCRIPT'||tg==='STYLE')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT}return n.parentNode&&n.parentNode.tagName==='TEXTAREA'?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT}});
   const todo=[];let n;while(n=w.nextNode()){if(n.nodeType===3){if(n.nodeValue.trim())todo.push(n)}else{for(const a of ['placeholder','aria-label','title']){const v=n.getAttribute&&n.getAttribute(a);if(v){const t=tr(v);if(t!==v)n.setAttribute(a,t)}}}}
   for(const t of todo){const v=tr(t.nodeValue);if(v!==t.nodeValue)t.nodeValue=v}}
 new MutationObserver(ms=>{if(I18N_LANG==='nl')return;for(const m of ms){if(m.type==='characterData'){const v=tr(m.target.nodeValue);if(v!==m.target.nodeValue)m.target.nodeValue=v}else m.addedNodes.forEach(n=>{if(n.nodeType===1)translateDOM(n);else if(n.nodeType===3){const v=tr(n.nodeValue);if(v!==n.nodeValue)n.nodeValue=v}})}}).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
