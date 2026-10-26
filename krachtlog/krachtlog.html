@@ -571,6 +571,9 @@ const EXLIB=[
 ];
 const EQUIP={bar:'Barbell',db:'Dumbbell',bw:'Lichaamsgewicht',cable:'Kabel',machine:'Machine'};
 const allEx=()=>EXLIB.concat(S.customEx||[]);
+const SYN={squat:'kniebuiging hurken',bench:'bankdrukken borst drukken',deadlift:'dood tillen trekken',ohp:'schouderdrukken militair',row:'roeien',pullup:'optrekken',dip:'dippen',legpress:'beenpers',legext:'beenstrekken',legcurl:'beenbuigen',calf:'kuit',crunch:'buik sit-up',plank:'planken',lunge:'uitval',shrug:'schouderophalen',curl:'biceps',pushdown:'triceps',pulldown:'latpull trekken',cardio_run:'lopen rennen joggen',cardio_bike:'fietsen',cardio_row:'roeien',cardio_walk:'wandelen',stretch:'rekken stretchen',deadhang:'hangen',pecdeck:'fly vlinder',abmachine:'buikspieren'};
+const fold=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[\s\-_]+/g,' ').trim();
+function exMatch(e,q){q=fold(q);if(!q)return true;const hay=fold([e.name,e.group,EQUIP[e.equip]||'',e.muscles||'',SYN[e.id]||'',e.id].join(' '));const tight=hay.replace(/ /g,'');return q.split(' ').every(w=>hay.includes(w)||tight.includes(w.replace(/ /g,'')))}
 const exById=id=>allEx().find(e=>e.id===id)||{id,name:'Onbekend',group:'Core',equip:'bw',pose:'plank',inc:2.5};
 
 /* ========= periodisation schemes ========= */
@@ -1053,7 +1056,7 @@ function exMenu(i){const wo=S.active;const en=wo.entries[i];const ex=exById(en.e
     $('#mDel',b).onclick=()=>{wo.entries.splice(i,1);save();closeSheet();render()};}});
 }
 function exPicker(onPick,title='Oefening kiezen'){
-  const list=q=>allEx().filter(e=>!q||e.name.toLowerCase().includes(q)||e.group.toLowerCase().includes(q)).map(e=>`<button class="item" data-pick="${e.id}"><div class="fig g-${e.group}">${drawing(e.pose)}</div><div class="t"><b>${esc(e.name)}</b><span>${e.group} · ${EQUIP[e.equip]}</span></div></button>`).join('');
+  const list=q=>allEx().filter(e=>exMatch(e,q)).map(e=>`<button class="item" data-pick="${e.id}"><div class="fig g-${e.group}">${drawing(e.pose)}</div><div class="t"><b>${esc(e.name)}</b><span>${e.group} · ${EQUIP[e.equip]}</span></div></button>`).join('');
   sheet(title,`<input id="pkQ" placeholder="Zoek oefening…" autocomplete="off"><div class="list" id="pkList">${list('')}</div><button class="btn block" id="pkNew">${I.plus} Nieuwe oefening aanmaken</button>`,{onMount:b=>{
     $('#pkQ',b).oninput=e=>{$('#pkList',b).innerHTML=list(e.target.value.toLowerCase())};
     b.addEventListener('click',e=>{const x=e.target.closest('[data-pick]');if(x){closeSheet();onPick(x.dataset.pick)}});
@@ -1171,13 +1174,14 @@ function pickDay(){const p=activeProgram();if(!p)return;sheet('Welke dag?',`<p c
 
 /* ========= EXERCISES ========= */
 let exQ='',exG='';
+function exRow(e){const br=bestReal(e.id);return `<button class="item" data-act="exDetail" data-id="${e.id}"><div class="fig g-${e.group}">${drawing(e.pose)}</div><div class="t"><b>${esc(e.name)}</b><span><span class="dot g-${e.group}"></span> ${e.group} · ${EQUIP[e.equip]}</span></div><div class="r num">${br?`${fmtN(br.w)}<span class="muted small">×${br.r}</span>`:'<span class="muted">—</span>'}</div></button>`}
 function vEx(){
-  const list=allEx().filter(e=>(!exG||e.group===exG)&&(!exQ||e.name.toLowerCase().includes(exQ)));
+  const list=allEx().filter(e=>(!exG||e.group===exG)&&exMatch(e,exQ));
   view(`<input id="exQ" placeholder="Zoek oefening…" value="${esc(exQ)}" autocomplete="off">
     <div class="chips"><button class="chip ${!exG?'on':''}" data-g="">Alle</button>${GROUPS.map(g=>`<button class="chip ${exG===g?'on':''}" data-g="${g}">${g}</button>`).join('')}</div>
-    <div class="card"><div class="list">${list.map(e=>{const br=bestReal(e.id);return `<button class="item" data-act="exDetail" data-id="${e.id}"><div class="fig g-${e.group}">${drawing(e.pose)}</div><div class="t"><b>${esc(e.name)}</b><span><span class="dot g-${e.group}"></span> ${e.group} · ${EQUIP[e.equip]}</span></div><div class="r num">${br?`${fmtN(br.w)}<span class="muted small">×${br.r}</span>`:'<span class="muted">—</span>'}</div></button>`}).join('')||'<p class="muted">Geen oefeningen gevonden.</p>'}</div></div>
+    <div class="card"><div class="list" id="exList">${list.map(e=>exRow(e)).join('')||'<p class="muted">Geen oefeningen gevonden.</p>'}</div></div>
     <button class="btn block" data-act="newEx">${I.plus} Eigen oefening</button>`);
-  $('#exQ').oninput=e=>{exQ=e.target.value.toLowerCase();vEx();const i=$('#exQ');i.focus();i.setSelectionRange(99,99)};
+  $('#exQ').oninput=e=>{exQ=e.target.value;const list=allEx().filter(x=>(!exG||x.group===exG)&&exMatch(x,exQ));$('#exList').innerHTML=list.map(x=>exRow(x)).join('')||'<p class="muted">Geen oefeningen gevonden.</p>'};
   $$('[data-g]').forEach(b=>b.onclick=()=>{exG=b.dataset.g;vEx()});
 }
 let exGym='',exAll=false,exRm=false,exEst=false;
