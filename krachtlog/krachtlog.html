@@ -772,7 +772,7 @@ function flagHistory(){let n=0;const list=[];const wos=doneWorkouts().slice().re
 /* Beginners (Nieuw, Beginner) krijgen in elk nieuw programma Opwarmen als eerste oefening van elke dag; hoe is vrij. */
 const isBeginner=()=>['new','beg'].includes(S.settings.level||'beg');
 const warmupItem=()=>({id:uid(),exId:'warmup',kind:'acc',sets:1,reps:8,weight:0,inc:0,rule:'none'});
-function withWarmup(prog){if(!prog||!isBeginner())return prog;for(const d of prog.days)if(!d.items.some(i=>i.exId==='warmup'))d.items.unshift(warmupItem());return prog}
+function withWarmup(prog){if(!prog||!(isBeginner()||prog.warm))return prog;delete prog.warm;for(const d of prog.days)if(!d.items.some(i=>i.exId==='warmup'))d.items.unshift(warmupItem());return prog}
 function buildProgram(o){return withWarmup(buildProgram0(o))}
 function buildProgram0({name,scheme,split,days,rm}){
   const sc=SCHEMES[scheme];split=SPLITS[split]?split:'upperlower';const layout=SPLITS[split].days(clamp(days||3,2,6));
@@ -792,9 +792,9 @@ function deriveProgram0(){
   const norm=n=>String(n||'').toLowerCase().replace(/\s*\(.*?\)\s*/g,'').replace(/\d+$/,'').trim()||'training';
   const cl={};for(const w of wos)(cl[norm(w.name)]=cl[norm(w.name)]||[]).push(w);
   let groups=Object.entries(cl).filter(([k,v])=>v.length>=2).sort((a,b)=>b[1].length-a[1].length).slice(0,6);if(!groups.length)groups=[['training',wos]];
-  const days=[];const tm={};let topset=false;
-  for(const [name,list] of groups){const st={};list.forEach((w,wi)=>w.entries.forEach((en,pos)=>{const ss=en.sets.filter(x=>x.done&&(x.r>0||isTime(exById(en.exId))));if(!ss.length)return;const o=st[en.exId]=st[en.exId]||{n:0,pos:[],sets:[],top:[],reps:[],last:null,minr:[]};o.n++;o.pos.push(pos);o.sets.push(ss.length);(o.ses=o.ses||[]).push({date:w.date,sets:ss.map(x=>({w:x.w||0,r:x.r||0})),note:String(en.note||'')});if(en.tgt)o.tgt=en.tgt;const tw=Math.max(...ss.map(x=>x.w||0));const ts=ss.filter(x=>(x.w||0)===tw);o.top.push(tw);o.reps.push(median(ts.map(x=>x.r)));o.minr.push(Math.min(...ss.map(x=>x.r)));if(!o.last||w.date>o.last.date)o.last={date:w.date,w:tw,sets:ss}}));
-    const items=Object.entries(st).filter(([id,o])=>o.n/list.length>=0.4).sort((a,b)=>median(a[1].pos)-median(b[1].pos)).map(([id,o])=>{const ex=exById(id);const main=false;const sets=clamp(median(o.sets),1,6);const reps=clamp(median(o.reps)||8,1,isTime(ex)?600:30);
+  const days=[];const tm={};let topset=false;const warm={sets:0,n:0};const WRE=/opwarm|warm-?up|warming|inlopen|échauff/i;for(const w of wos){const first=w.entries[0];if((first&&(first.exId==='warmup'||/^cardio_/.test(first.exId)))||WRE.test(w.notes||'')||w.entries.some(en=>WRE.test(en.note||'')))warm.n++}
+  for(const [name,list] of groups){const st={};list.forEach((w,wi)=>w.entries.forEach((en,pos)=>{let ss=en.sets.filter(x=>x.done&&(x.r>0||isTime(exById(en.exId))));if(!ss.length)return;if(!isTime(exById(en.exId))){const tw=Math.max(...ss.map(x=>x.w||0));const ti=ss.map(x=>x.w||0).lastIndexOf(tw);const work=ss.filter((x,k)=>!(k<ti&&(x.w||0)<0.6*tw));if(work.length&&work.length<ss.length){warm.sets++}if(work.length)ss=work}const o=st[en.exId]=st[en.exId]||{n:0,pos:[],sets:[],top:[],reps:[],last:null,minr:[]};o.n++;o.pos.push(pos);o.sets.push(ss.length);(o.ses=o.ses||[]).push({date:w.date,sets:ss.map(x=>({w:x.w||0,r:x.r||0})),note:String(en.note||'')});if(en.tgt)o.tgt=en.tgt;const tw=Math.max(...ss.map(x=>x.w||0));const ts=ss.filter(x=>(x.w||0)===tw);o.top.push(tw);o.reps.push(median(ts.map(x=>x.r)));o.minr.push(Math.min(...ss.map(x=>x.r)));if(!o.last||w.date>o.last.date)o.last={date:w.date,w:tw,sets:ss}}));
+    const items=Object.entries(st).filter(([id,o])=>id!=='warmup'&&!(/^cardio_/.test(id)&&median(o.pos)===0&&warm.n>=Math.ceil(wos.length/2))).filter(([id,o])=>o.n/list.length>=0.4).sort((a,b)=>median(a[1].pos)-median(b[1].pos)).map(([id,o])=>{const ex=exById(id);const main=false;const sets=clamp(median(o.sets),1,6);const reps=clamp(median(o.reps)||8,1,isTime(ex)?600:30);
       if(main){const singles=o.minr.filter(r=>r<=3).length/o.n;if(singles>=0.5){topset=true;const t=Math.max(...o.top);tm[id]=Math.max(tm[id]||0,t)}else tm[id]=Math.max(tm[id]||0,Math.round(Math.max(...o.top.map((t,i)=>e1rm(t,o.reps[i])))*0.9/2.5)*2.5);
         return {id:uid(),exId:id,kind:'main',sets,reps:Math.max(reps,3),inc:ex.group==='Benen'||id==='deadlift'?5:2.5}}
       if(isTime(ex))return {id:uid(),exId:id,kind:'acc',sets:1,reps:median(o.reps.filter(Boolean))||(unitOf(ex)==='min'?10:60),weight:0,inc:0,amrap:true,rule:'none',tgt:o.tgt||''};
@@ -822,7 +822,7 @@ function deriveProgram0(){
     if(items.length)days.push({name:name.replace(/^./,c=>c.toUpperCase()),items,n:list.length})}
   if(!days.length)return null;
   const scheme='plain';
-  return {id:uid(),name:'Mijn routine',scheme,split:'blank',created:today(),cycle:1,week:0,day:0,tm,fails:{},log:[{date:today(),n:`Afgeleid uit ${plur(wos.length,'training','trainingen')} (${fmtD(wos[wos.length-1].date)} – ${fmtD(wos[0].date)})`}],days:days.map(d=>({name:d.name,items:d.items}))};
+  return {id:uid(),name:'Mijn routine',scheme,split:'blank',created:today(),cycle:1,week:0,day:0,tm,fails:{},warm:warm.n>=Math.ceil(wos.length/2)||warm.sets>=wos.length,log:[{date:today(),n:`Afgeleid uit ${plur(wos.length,'training','trainingen')} (${fmtD(wos[wos.length-1].date)} – ${fmtD(wos[0].date)})`}],days:days.map(d=>({name:d.name,items:d.items}))};
 }
 function deriveSheet(after){const p=deriveProgram();if(!p){toast('Te weinig trainingen om een routine af te leiden');after&&after();return}const sc=SCHEMES[p.scheme];
   sheet('Programma uit je laatste trainingen',`<p class="note" style="font-size:15px;color:var(--fg)">Dit is wat je de laatste weken effectief deed. Herkende patronen staan erbij: opbouw, max, dropset, myo-reps, superset en progressie (ook uit je notities). Niets verandert vanzelf. Vink af wat je niet wil; aanpassen kan nadien onder Programma.</p>
