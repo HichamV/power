@@ -1510,9 +1510,11 @@ function copyText(txt,label){if(ANDROID()){const name=label.replace(/[^\w]+/g,'-
   const done=()=>toast(/prompt/i.test(label)?`${label} gekopieerd. Plak ze in je AI-gesprek en zet je logboek eronder.`:`${label} gekopieerd (${Math.round(txt.length/1024)} kB). Plak het in je Claude-gesprek.`,3500);navigator.clipboard?.writeText(txt).then(done).catch(()=>{sheet(label,`<p class="note">Kopiëren lukte niet automatisch. Selecteer de tekst hieronder en kopieer ze zelf.</p><textarea id="bkT" style="min-height:220px;font-size:11px">${esc(txt)}</textarea>`,{onMount:b=>{$('#bkT',b).select()}})})}
 /* ========= AI-prompt: een logboek uit een andere app, Excel of notities laten omzetten naar Power-formaat ========= */
 function aiPrompt(){const exs=allEx().map(e=>`${e.id} = ${e.name}${isTime(e)?` (time: ${unitOf(e)})`:''}`).join('\n');
-return `You convert a strength-training logbook into the import format of the app Power. The logbook may be in Dutch, French or English, from another app (Strong, Hevy, FitNotes, Jefit), a spreadsheet, or free-text notes.
+return `You are a careful data converter. You convert a strength-training logbook and/or a training programme into the import format of the app Power. The input may be in Dutch, French or English, from another app (Strong, Hevy, FitNotes, Jefit, Boostcamp, Liftosaur), a spreadsheet, a PDF from a coach, a photo of a notebook, or free-text notes.
 
-OUTPUT: one JSON object and nothing else: no explanation, no markdown fences. If something important is ambiguous (units, date order, abbreviations), ask me first; otherwise produce the JSON. The JSON must be valid and complete.
+OUTPUT: one JSON object and nothing else: no explanation, no markdown fences. If something important is ambiguous (units, date order, abbreviations, which column is weight), ask me ONE short question first; otherwise produce the JSON. The JSON must be valid and complete.
+
+COMPLETENESS: convert every session and every set. Never summarise, sample or write "..." in the output. If the input is too long for one answer, say so and deliver it in numbered parts; each part must be a complete, valid JSON object with its own workouts (same format, ids continue: part 2 starts where part 1 stopped). Do not invent sessions, dates or numbers that are not in the input.
 
 FORMAT
 {"power":"history","v":1,"exported":"${today()}","name":"","workouts":[...],"oneRM":{},"bodyweight":[],"programs":[],"customEx":[],"injuries":[]}
@@ -1543,10 +1545,22 @@ programs = [{"id":"p1","name":"Programme name","scheme":"plain","split":"blank",
 - Time exercises (see list): sets 1, reps = seconds or minutes as marked. A warm-up block becomes {"exId":"warmup","kind":"acc","sets":1,"reps":8,"weight":0,"inc":0,"rule":"none"} as the first item.
 - If the text contains both a programme and a log, fill workouts and programs both.
 
+WORKED EXAMPLE
+Input: "ma 3/2  bench 60x8 80x5 85x5 85x4 (schouder stijf)  pull ups 3x6  dead hang 45s"
+Output: {"power":"history","v":1,"exported":"${today()}","name":"","workouts":[{"id":"h1","date":"2025-02-03","name":"Push","notes":"","imported":true,"entries":[{"exId":"bench","sets":[{"w":60,"r":8,"done":true},{"w":80,"r":5,"done":true},{"w":85,"r":5,"done":true},{"w":85,"r":4,"done":true}],"note":"schouder stijf"},{"exId":"pullup","sets":[{"w":0,"r":6,"done":true},{"w":0,"r":6,"done":true},{"w":0,"r":6,"done":true}],"note":""},{"exId":"deadhang","sets":[{"w":0,"r":45,"done":true}],"note":""}]}],"oneRM":{},"bodyweight":[],"programs":[],"customEx":[],"injuries":[]}
+(The year was not in the input: pick the most plausible one from context and mention "year estimated" in notes if unsure.)
+
+SELF-CHECK before you answer (fix silently, do not list):
+1. Valid JSON, one object, no trailing commas, no comments, no fences.
+2. Every exId exists in the exercise list below or in your customEx.
+3. Dates are YYYY-MM-DD and in the right order; weights are kg; time exercises have w 0 and r in the unit marked.
+4. The number of sessions and sets in the output matches the input.
+5. Programme items have sets, reps, weight, inc and rule; options only where the programme says so.
+
 EXERCISE LIST
 ${exs}
 
-Here is my logbook:
+Here is my logbook or programme:
 `}
 function aiPromptSheet(){sheet('Logboek omzetten met een AI',`<p class="note">Heb je een logboek of een programma in een andere app, een Excel, op papier of in losse notities? Kopieer deze prompt, plak ze in Claude, ChatGPT of een andere AI, en plak je logboek of programma eronder. Je krijgt een bestand terug dat je hier kan importeren (kies Plakken, of sla het op als .json). Kies Samenvoegen als je alleen een programma toevoegt.</p>
   <p class="note">De prompt bevat de volledige oefeningenlijst van Power, de regels voor gewichten, reps en tijd, en het programmaformaat met alle opties (max, myo-reps, dropsets, supersets, opbouw, progressie, opwarmen). Ze is in het Engels; je tekst mag in het Nederlands, Frans of Engels zijn.</p>
